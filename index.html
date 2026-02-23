@@ -52,54 +52,50 @@ font-weight: bold;
 .error {
 color: #ff6b6b;
 }
-
-/* Lock screen styles */
-#lock-screen {
+#passcode-screen {
 position: fixed;
 inset: 0;
 background: #0d1117;
 display: flex;
 flex-direction: column;
-align-items: center;
 justify-content: center;
+align-items: center;
 z-index: 9999;
-color: #c9d1d9;
 }
-#lock-screen.hidden {
+#passcode-screen.hidden {
 display: none;
 }
-#pass-input {
+#passcode-input {
 background: #161b22;
 border: 1px solid #30363d;
 color: #c9d1d9;
+font-family: inherit;
 font-size: 24px;
 padding: 12px 16px;
-width: 180px;
+width: 240px;
 text-align: center;
 letter-spacing: 8px;
-font-family: monospace;
 }
-#pass-input::placeholder {
-color: #444c56;
-letter-spacing: normal;
+#passcode-prompt {
+margin-bottom: 16px;
+font-size: 18px;
 }
-#pass-error {
+#passcode-error {
 color: #ff6b6b;
 margin-top: 12px;
-min-height: 1.2em;
+min-height: 1.4em;
 }
 </style>
 </head>
 <body>
 
-<!-- Lock screen overlay -->
-<div id="lock-screen">
-<h2 style="margin-bottom: 20px;">Enter Passcode</h2>
-<input type="text" id="pass-input" maxlength="4" placeholder="••••" autocomplete="off" autofocus />
-<div id="pass-error"></div>
+<div id="passcode-screen">
+<div id="passcode-prompt">Enter passcode</div>
+<input type="password" id="passcode-input" autocomplete="off" spellcheck="false" autofocus />
+<div id="passcode-error"></div>
 </div>
 
-<div id="main-content" style="display: none;">
+<div id="main-content" style="display:none;">
 <div id="output"></div>
 <div id="input-line">
 <span id="prompt">> </span>
@@ -108,49 +104,46 @@ min-height: 1.2em;
 </div>
 
 <script>
+const PASSCODE = '4233';
+
+const passcodeScreen = document.getElementById('passcode-screen');
+const passcodeInput = document.getElementById('passcode-input');
+const passcodeError = document.getElementById('passcode-error');
+const mainContent = document.getElementById('main-content');
+
 const output = document.getElementById('output');
 const commandInput = document.getElementById('command');
-const lockScreen = document.getElementById('lock-screen');
-const mainContent = document.getElementById('main-content');
-const passInput = document.getElementById('pass-input');
-const passError = document.getElementById('pass-error');
-
-const CORRECT_PASSCODE = '4233';
 
 let currentMenu = 'main';
 let panicKey = null;
 let panicKeyListener = null;
 
-// Simple masked input handling (show bullets)
-passInput.addEventListener('input', () => {
-passError.textContent = '';
-// We don't need to manually mask value — type="text" + letter-spacing + placeholder does visual masking
-// Real value is still accessible for checking
-});
-
-passInput.addEventListener('keydown', (e) => {
-if (e.key === 'Enter') {
-e.preventDefault();
-const entered = passInput.value.trim();
-if (entered === CORRECT_PASSCODE) {
-lockScreen.classList.add('hidden');
+// ─── Passcode logic ────────────────────────────────────────
+function checkPasscode() {
+const entered = passcodeInput.value.trim();
+if (entered === PASSCODE) {
+passcodeScreen.classList.add('hidden');
 mainContent.style.display = 'block';
 commandInput.focus();
-drawMainMenu(); // Show initial menu after unlock
+drawMainMenu();
 } else {
-passError.textContent = 'Incorrect passcode.';
-passInput.value = '';
-passInput.focus();
+passcodeError.textContent = 'Incorrect passcode. Try again.';
+passcodeInput.value = '';
+passcodeInput.focus();
 }
+}
+
+passcodeInput.addEventListener('keydown', (e) => {
+if (e.key === 'Enter') {
+e.preventDefault();
+checkPasscode();
 }
 });
 
-// Start with lock screen visible
-lockScreen.classList.remove('hidden');
-mainContent.style.display = 'none';
-passInput.focus();
+// Start with passcode screen focused
+passcodeInput.focus();
 
-// ────────────────────────────────────────────────
+// ─── Original terminal logic below ─────────────────────────
 
 function print(text = '', className = '') {
 const line = document.createElement('div');
@@ -273,9 +266,28 @@ drawPanicMenu();
 document.addEventListener('keydown', tempListener);
 }
 
-// Replaced openInBlankTab with direct navigation (replaces current tab)
-function navigateTo(url) {
-window.location.replace(url);
+function openInBlankTab(url) {
+const win = window.open('about:blank', '_blank');
+if (win) {
+win.document.open();
+win.document.write(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loading...</title>
+<style>body { margin:0; padding:0; overflow:hidden; background:#000; }</style>
+</head>
+<body>
+<iframe src="${url}" frameborder="0" style="width:100vw; height:100vh; border:none;"></iframe>
+</body>
+</html>
+`);
+win.document.close();
+} else {
+print('Popup blocked — allow popups to open in blank tab.', 'error');
+}
 }
 
 function cloakTab() {
@@ -291,7 +303,12 @@ print('Popup blocked — allow popups for Cloak Tab.', 'error');
 }
 
 function newBlankWindow() {
-window.open('', '_blank', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no,resizable=yes');
+const width = screen.availWidth;
+const height = screen.availHeight;
+window.open('', '_blank',
+`width=${width},height=${height},left=0,top=0,` +
+`menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes,fullscreen=yes`
+);
 }
 
 function processCommand(input) {
@@ -308,22 +325,19 @@ setTimeout(() => window.close(), 900);
 print(`? ${cmd}`, 'error');
 }
 }
-
 else if (currentMenu === 'games') {
-if (cmd === '1') navigateTo('https://plinko-game-online.github.io/');
-else if (cmd === '2') navigateTo('https://0706970-collab.github.io/googleclassroom/');
-else if (cmd === '3') navigateTo('https://0706970-collab.github.io/gta/');
+if (cmd === '1') openInBlankTab('https://plinko-game-online.github.io/');
+else if (cmd === '2') openInBlankTab('https://0706970-collab.github.io/googleclassroom/');
+else if (cmd === '3') openInBlankTab('https://0706970-collab.github.io/gta/');
 else if (cmd === '4' || cmd === 'back') { currentMenu = 'main'; drawMainMenu(); }
 else if (cmd) print(`? ${cmd}`, 'error');
 }
-
 else if (currentMenu === 'ai') {
-if (cmd === '1') navigateTo('https://0706970-collab.github.io/Jesko-ai/');
-else if (cmd === '2') navigateTo('https://grok.com/');
+if (cmd === '1') openInBlankTab('https://0706970-collab.github.io/Jesko-ai/');
+else if (cmd === '2') openInBlankTab('https://grok.com/');
 else if (cmd === '3' || cmd === 'back') { currentMenu = 'main'; drawMainMenu(); }
 else if (cmd) print(`? ${cmd}`, 'error');
 }
-
 else if (currentMenu === 'shortcuts') {
 if (cmd === '1') {
 newBlankWindow();
@@ -342,7 +356,6 @@ drawMainMenu();
 print(`? ${cmd}`, 'error');
 }
 }
-
 else if (currentMenu === 'panic') {
 if (cmd === '1') {
 removePanicKeybind();
@@ -370,26 +383,16 @@ commandInput.value = '';
 }
 });
 
-// Keep input focused
 function refocus() {
+if (!passcodeScreen.classList.contains('hidden')) {
+passcodeInput.focus();
+} else {
 commandInput.focus();
 }
-
-document.addEventListener('click', () => {
-if (!lockScreen.classList.contains('hidden')) {
-passInput.focus();
-} else {
-refocus();
 }
-});
 
-window.addEventListener('blur', () => {
-if (!lockScreen.classList.contains('hidden')) {
-setTimeout(() => passInput.focus(), 100);
-} else {
-setTimeout(refocus, 100);
-}
-});
+document.addEventListener('click', refocus);
+window.addEventListener('blur', () => setTimeout(refocus, 100));
 </script>
 </body>
 </html>
