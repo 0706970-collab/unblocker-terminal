@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Multi-Tool • Terminal</title>
+<style>
+body {
+margin: 0;
+padding: 20px;
+background: #0d1117;
+color: #c9d1d9;
+font-family: 'Courier New', Consolas, monospace;
+font-size: 15px;
+line-height: 1.45;
+min-height: 100vh;
+}
+#output {
+background: #161b22;
+border: 1px solid #30363d;
+border-radius: 6px;
+padding: 16px;
+white-space: pre-wrap;
+word-wrap: break-word;
+margin: 0 0 16px 0;
+min-height: 220px;
+max-height: 65vh;
+overflow-y: auto;
+}
+#input-line {
+display: flex;
+align-items: center;
+}
+#prompt {
+color: #58a6ff;
+margin-right: 6px;
+user-select: none;
+}
+#command {
+background: transparent;
+border: none;
+color: #c9d1d9;
+font: inherit;
+outline: none;
+flex: 1;
+caret-color: #58a6ff;
+}
+.header {
+color: #79c0ff;
+font-weight: bold;
+}
+.error {
+color: #ff6b6b;
+}
+</style>
+</head>
+<body>
+<div id="output"></div>
+<div id="input-line">
+<span id="prompt">> </span>
+<input type="text" id="command" autocomplete="off" spellcheck="false" autofocus />
+</div>
+
+<script>
+const output = document.getElementById('output');
+const commandInput = document.getElementById('command');
+
+let currentMenu = 'main';
+let panicKey = null;
+let panicKeyListener = null;
+
+function print(text = '', className = '') {
+const line = document.createElement('div');
+line.className = className;
+line.textContent = text;
+output.appendChild(line);
+output.scrollTop = output.scrollHeight;
+}
+
+function clearScreen() {
+output.innerHTML = '';
+}
+
+function drawHeader(title) {
+print('═══════════════════════════════════════════════════════', 'header');
+print(' ' + title, 'header');
+print('═══════════════════════════════════════════════════════', 'header');
+print('');
+}
+
+function drawMainMenu() {
+clearScreen();
+drawHeader('MULTI-TOOL');
+print(' [01] > Games');
+print(' [02] > AI');
+print(' [03] > Shortcuts');
+print('');
+print(' [99] > Exit');
+print('');
+}
+
+function drawGamesMenu() {
+clearScreen();
+drawHeader('GAMES');
+print(' [01] > Rainbet');
+print(' [02] > Unblocked Hub');
+print(' [03] > GTA: Vice City');
+print('');
+print(' [04] > Back');
+print('');
+}
+
+function drawAIMenu() {
+clearScreen();
+drawHeader('AI');
+print(' [01] > Jesko');
+print(' [02] > Grok');
+print('');
+print(' [03] > Back');
+print('');
+}
+
+function drawShortcutsMenu() {
+clearScreen();
+drawHeader('SHORTCUTS');
+print(' [01] > New Window');
+print(' [02] > Cloak Tab');
+print(' [03] > Panic');
+print('');
+print(' [04] > Exit');
+print('');
+}
+
+function drawPanicMenu() {
+clearScreen();
+drawHeader('PANIC KEYBIND');
+print(' [01] > Remove Keybind' + (panicKey ? ` (current: ${panicKey})` : ''));
+print(' [02] > Set Keybind');
+print('');
+print(' [03] > Exit');
+print('');
+}
+
+function removePanicKeybind() {
+if (panicKeyListener) {
+document.removeEventListener('keydown', panicKeyListener);
+panicKeyListener = null;
+}
+panicKey = null;
+print('Panic keybind removed.');
+}
+
+function setPanicKeybind() {
+print('Press any key to set as panic key... (Esc to cancel)');
+
+const tempListener = (e) => {
+e.preventDefault();
+if (e.key === 'Escape') {
+print('Cancelled.');
+document.removeEventListener('keydown', tempListener);
+drawPanicMenu();
+return;
+}
+
+const chosenKey = e.key;
+print(`Key detected: ${chosenKey} — activating in 1 second...`);
+
+setTimeout(() => {
+panicKey = chosenKey;
+print(`Panic key successfully set to: ${panicKey}`);
+
+if (panicKeyListener) {
+document.removeEventListener('keydown', panicKeyListener);
+}
+
+panicKeyListener = (ev) => {
+if (ev.key === panicKey) {
+ev.preventDefault();
+window.open('https://www.google.com', '_blank');
+window.close();
+}
+};
+document.addEventListener('keydown', panicKeyListener);
+
+document.removeEventListener('keydown', tempListener);
+drawPanicMenu();
+}, 1000);
+};
+
+document.addEventListener('keydown', tempListener);
+}
+
+function openInBlankTab(url) {
+const win = window.open('about:blank', '_blank');
+if (win) {
+win.document.open();
+win.document.write(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loading...</title>
+<style>body { margin:0; padding:0; overflow:hidden; background:#000; }</style>
+</head>
+<body>
+<iframe src="${url}" frameborder="0" style="width:100vw; height:100vh; border:none;"></iframe>
+</body>
+</html>
+`);
+win.document.close();
+} else {
+print('Popup blocked — allow popups to open in blank tab.', 'error');
+}
+}
+
+function cloakTab() {
+const newWin = window.open('about:blank', '_blank');
+if (newWin) {
+newWin.document.open();
+newWin.document.write(document.documentElement.outerHTML);
+newWin.document.close();
+setTimeout(() => window.close(), 300);
+} else {
+print('Popup blocked — allow popups for Cloak Tab.', 'error');
+}
+}
+
+function newBlankWindow() {
+// Open as large as possible → most browsers treat this as maximized
+const width = screen.availWidth;
+const height = screen.availHeight;
+window.open('', '_blank',
+`width=${width},height=${height},left=0,top=0,` +
+`menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes,fullscreen=yes`
+);
+}
+
+function processCommand(input) {
+const cmd = (input || '').trim().toLowerCase().replace(/^0+/, '');
+
+if (currentMenu === 'main') {
+if (cmd === '1') { currentMenu = 'games'; drawGamesMenu(); }
+else if (cmd === '2') { currentMenu = 'ai'; drawAIMenu(); }
+else if (cmd === '3') { currentMenu = 'shortcuts'; drawShortcutsMenu(); }
+else if (cmd === '99' || cmd === 'exit' || cmd === 'quit') {
+print('Goodbye.');
+setTimeout(() => window.close(), 900);
+} else if (cmd) {
+print(`? ${cmd}`, 'error');
+}
+}
+
+else if (currentMenu === 'games') {
+if (cmd === '1') openInBlankTab('https://plinko-game-online.github.io/');
+else if (cmd === '2') openInBlankTab('https://0706970-collab.github.io/googleclassroom/');
+else if (cmd === '3') openInBlankTab('https://0706970-collab.github.io/gta/');
+else if (cmd === '4' || cmd === 'back') { currentMenu = 'main'; drawMainMenu(); }
+else if (cmd) print(`? ${cmd}`, 'error');
+}
+
+else if (currentMenu === 'ai') {
+if (cmd === '1') openInBlankTab('https://0706970-collab.github.io/Jesko-ai/');
+else if (cmd === '2') openInBlankTab('https://grok.com/');
+else if (cmd === '3' || cmd === 'back') { currentMenu = 'main'; drawMainMenu(); }
+else if (cmd) print(`? ${cmd}`, 'error');
+}
+
+else if (currentMenu === 'shortcuts') {
+if (cmd === '1') {
+newBlankWindow();
+}
+else if (cmd === '2') {
+cloakTab();
+}
+else if (cmd === '3') {
+currentMenu = 'panic';
+drawPanicMenu();
+}
+else if (cmd === '4' || cmd === 'exit' || cmd === 'back') {
+currentMenu = 'main';
+drawMainMenu();
+} else if (cmd) {
+print(`? ${cmd}`, 'error');
+}
+}
+
+else if (currentMenu === 'panic') {
+if (cmd === '1') {
+removePanicKeybind();
+drawPanicMenu();
+}
+else if (cmd === '2') {
+setPanicKeybind();
+return;
+}
+else if (cmd === '3' || cmd === 'exit' || cmd === 'back') {
+currentMenu = 'shortcuts';
+drawShortcutsMenu();
+} else if (cmd) {
+print(`? ${cmd}`, 'error');
+}
+}
+}
+
+// ────────────────────────────────────────────────
+commandInput.addEventListener('keydown', function(e) {
+if (e.key === 'Enter') {
+e.preventDefault();
+const cmd = commandInput.value;
+processCommand(cmd);
+commandInput.value = '';
+}
+});
+
+// Keep input focused
+function refocus() {
+commandInput.focus();
+}
+
+commandInput.focus();
+document.addEventListener('click', refocus);
+window.addEventListener('blur', () => setTimeout(refocus, 100));
+// Initial screen
+drawMainMenu();
+</script>
+</body>
+</html>
