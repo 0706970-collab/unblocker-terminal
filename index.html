@@ -191,7 +191,7 @@ function drawAIMenu() {
 clearScreen();
 drawHeader('AI');
 print(' [01] > Jesko');
-print(' [02] > Grok');
+print(' [02] > Brave');
 print('');
 print(' [03] > Back');
 print('');
@@ -336,7 +336,7 @@ else if (cmd) print(`? ${cmd}`, 'error');
 }
 else if (currentMenu === 'ai') {
 if (cmd === '1') openInBlankTab('https://0706970-collab.github.io/Jesko-ai/');
-else if (cmd === '2') openInBlankTab('https://grok.com/');
+else if (cmd === '2') openInBlankTab('search.brave.com/ask');
 else if (cmd === '3' || cmd === 'back') { currentMenu = 'main'; drawMainMenu(); }
 else if (cmd) print(`? ${cmd}`, 'error');
 }
